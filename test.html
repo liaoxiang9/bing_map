@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title></title>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+    <link rel="stylesheet" href="https://a.amap.com/jsapi_demos/static/demo-center/css/demo-center.css" />
+    <style>
+        html,
+        body,
+        #container {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+    <title>设置地图级别与中心点</title>
+    <script type='text/javascript'
+        src='http://www.bing.com/api/maps/mapcontrol?callback=GetMap&key=AvjjR-sAgpMRFeuXI0xcjh9-hqUG-m5TahzM7NC6h51-H_CWrrqiBRHlIWMA7CDQ'
+        async defer></script>
+
+</head>
+
+<body>
+    <div id="container" osition:relative;width:600px;height:400px;"></div>
+    <div class="input-card" style="width:24rem;background-color:rgba(255,255,255,0.8)">
+        <label style='color:grey'>请输入想要设置的地图中心经纬度：经度,纬度</label>
+        <div class="input-item">
+            <div class="input-item-prepend">
+                <span class="input-item-text">经纬度</span>
+            </div>
+            <input id='lnglatInput' type="text" value="41.50632,0.12714">
+        </div>
+        <div class="input-item">
+            <button id="random-center-btn" class="btn">设置地图中心点 </button>
+        </div>
+        <h4>地块信息</h4>
+        <label style='color:grey'>请输入地块的长度和宽度(单位：米)：</label>
+        <div class="input-item">
+            <div class="input-item-prepend">
+                <span class="input-item-text">长度</span>
+            </div>
+            <input id='lengthInput' type="text" value="100">
+            <div class="input-item-prepend">
+                <span class="input-item-text">宽度</span>
+            </div>
+            <input id='widthInput' type="text" value="50">
+        </div>
+        <div class="input-item">
+            <button id="draw-rectangle" class="btn">绘制矩形(打好地块左下角的点)</button>
+        </div>
+        <div class="input-item">
+            <button id="vis-all" class="btn">显示所有点的位置信息</button>
+            <button id="delete-all" class="btn">删除所有点</button>
+        </div>
+        <div class="input-item">
+            <button id="rotate-acw" class="btn">逆时针旋转1度</button>
+            <button id="rotate-cw" class="btn">顺时针旋转1度</button>
+        </div>
+
+        <h4>路径规划</h4>
+        <label style='color:grey'>请输入作业幅宽和最小转弯半径(单位：米)：</label>
+        <div class="input-item">
+            <div class="input-item-prepend">
+                <span class="input-item-text">作业幅宽</span>
+            </div>
+            <input id='worklenInput' type="text" value="2">
+            <div class="input-item-prepend">
+                <span class="input-item-text">最小半径</span>
+            </div>
+            <input id='minradiusInput' type="text" value="1">
+        </div>
+
+        <label style='color:grey'>请输入入口序号和机具速度(单位：米/秒)：</label>
+        <div class="input-item">
+            <div class="input-item-prepend">
+                <span class="input-item-text">入口位置</span>
+            </div>
+            <input id='enterInput' type="text" value="8">
+            <div class="input-item-prepend">
+                <span class="input-item-text">机具速度</span>
+            </div>
+            <input id='speedInput' type="text" value="500">
+        </div>
+
+        <div class="input-item">
+            <button id="enter-position" class="btn">展示/隐藏入口位置</button>
+            <button id="tra-planning" class="btn">仿真展示</button>
+        </div>
+        <div class="input-item">
+            <button id="key-point" class="btn">展示/隐藏关键点位</button>
+            <button id="delete-all" class="btn">清空数据</button>
+        </div>
+    </div>
+
+    <script type='text/javascript'>
+        function GetMap() {
+            var lnglat_ = document.getElementById('lnglatInput').value.split(',');
+            var loc = new Microsoft.Maps.Location(lnglat_[1] * 1, lnglat_[0] * 1);
+            var map = new Microsoft.Maps.Map('#container', {
+                center: loc,
+                mapTypeId: Microsoft.Maps.MapTypeId.aerial,
+                zoom: 15
+            });
+            document.getElementById('random-center-btn').addEventListener('click', function () {
+                var lnglat = document.getElementById('lnglatInput').value.split(',');
+                map.setView({
+                    mapTypeId: Microsoft.Maps.MapTypeId.aerial,
+                    // center: new Microsoft.Maps.Location(parseDouble(lnglat[0]), parseDouble(lnglat[1])),
+                    center: new Microsoft.Maps.Location(lnglat[1] * 1, lnglat[0] * 1),
+                    zoom: 15
+                });
+            }, true)
+            // 点击地图，加点，添加信息框,显示经纬度的前6位小数
+
+            
+            var infoboxes = [];
+            var pins = [];
+            Microsoft.Maps.Events.addHandler(map, 'click', function (e) {
+                var loc = e.location;
+                var pin = new Microsoft.Maps.Pushpin(loc, {
+                    color: 'red'
+                });
+
+                map.entities.push(pin);
+                var infobox = new Microsoft.Maps.Infobox(loc, {
+                    title: '经纬度信息',
+                    description: e.location.longitude.toFixed(6)+','+e.location.latitude.toFixed(6),
+                    visible: false
+                });
+                infobox.setMap(map);
+                infoboxes.push(infobox);
+                pins.push(pin);
+            });
+            // 创建一个button，点击后，清空地图上的所有点
+            document.getElementById('delete-all').addEventListener('click', function () {
+                map.entities.clear();
+                // 删除所有的信息框,请使用Infobox.setMap(null)
+                for (var i = 0; i < infoboxes.length; i++) {
+                    infoboxes[i].setMap(null);
+                }
+                infoboxes = [];
+                pins = [];
+            }, true)
+            // 创建一个button，点击后，显示所有点的位置信息（前6位小数）
+            document.getElementById('vis-all').addEventListener('click', function () {
+                for (var i = 0; i < infoboxes.length; i++) {
+                    infoboxes[i].setOptions({
+                        visible: true
+                    });
+                }
+            }, true)
+            
+            polygons = [];
+
+
+            // 创建一个button，点击后，绘制矩形，通过经纬度计算矩形的四个顶点,loc为左下角的点，长和宽的单位为米
+            document.getElementById('draw-rectangle').addEventListener('click', function () {
+                if(polygons.length>0){
+                    map.entities.remove(polygons[0]);
+                    polygons = [];
+                }
+                var loc = pins[0].getLocation();
+                var length = document.getElementById('lengthInput').value;
+                var width = document.getElementById('widthInput').value;
+                var loc1 = new Microsoft.Maps.Location(loc.latitude + width *0.00000899, loc.longitude);
+                var loc2 = new Microsoft.Maps.Location(loc.latitude + width *0.00000899, loc.longitude + length*0.00001141);
+                var loc3 = new Microsoft.Maps.Location(loc.latitude, loc.longitude + length*0.00001141);
+                var locs = [loc, loc1, loc2, loc3, loc];
+                var polygon = new Microsoft.Maps.Polygon(locs, {
+                    fillColor: 'rgba(0,0,255,0.3)',
+                    strokeColor: 'blue',
+                    strokeThickness: 2
+                });
+                map.entities.push(polygon);
+                polygons.push(polygon);
+            }, true)
+            
+
+            degree = 0;
+            // 创建一个button，点击后，原先的矩形逆时针旋转1度
+            document.getElementById('rotate-acw').addEventListener('click', function () {
+                if(polygons.length>0){
+                    var polygon = polygons[0];
+                    map.entities.remove(polygon);
+                    polygons = [];
+                    var loc = polygon.getLocations();
+                    var loc0 = loc[0];
+                    var loc1 = loc[1];
+                    var loc2 = loc[2];
+                    var loc3 = loc[3];
+                    var loc4 = loc[4];
+
+                    degree = degree - 1;
+                    if(degree<0){
+                        deg = -degree;
+                    }else{
+                        deg = 360 - degree;
+                    }
+                    
+                    sin_degree = Math.sin(deg*Math.PI/180);
+                    cos_degree = Math.cos(deg*Math.PI/180);
+                    var length = document.getElementById('lengthInput').value;
+                    var width = document.getElementById('widthInput').value;
+
+                    var sin_l = sin_degree * length;
+                    var cos_l = cos_degree * length;
+                    var sin_w = sin_degree * width;
+                    var cos_w = cos_degree * width;
+                    var lati_cof = 0.00000899;
+                    var long_cof = 0.00001141;
+                    // 计算新的经纬度（旋转后的,仿照如下代码
+                    // var lnglat1 = basemk.toString().split(',');
+                    // var lnglat2 = basemk.offset((-1 * sin_degree * gl),(cos_degree * gl)).toString().split(',');
+                    // var lnglat3 = basemk.offset((gw*cos_degree-gl*sin_degree),(gw*sin_degree+gl*cos_degree)).toString().split(',');
+                    // var lnglat4 = basemk.offset(gw*cos_degree,gw*sin_degree).toString().split(',');
+
+                    var loc0 = new Microsoft.Maps.Location(loc0.latitude, loc0.longitude);
+                    var loc1 = new Microsoft.Maps.Location(loc0.latitude + cos_w * lati_cof, loc0.longitude + sin_w * long_cof);
+                    var loc2 = new Microsoft.Maps.Location(loc0.latitude + cos_w * lati_cof + cos_l * lati_cof, loc0.longitude + sin_w * long_cof + sin_l * long_cof);
+                    var loc3 = new Microsoft.Maps.Location(loc0.latitude + cos_l * lati_cof, loc0.longitude + sin_l * long_cof);
+                    var loc4 = new Microsoft.Maps.Location(loc0.latitude, loc0.longitude);
+
+                    
+
+
+
+                    var locs = [loc0, loc1, loc2, loc3, loc4];
+                    var polygon = new Microsoft.Maps.Polygon(locs, {
+                        fillColor: 'rgba(0,0,255,0.3)',
+                        strokeColor: 'blue',
+                        strokeThickness: 2
+                    });
+                    map.entities.push(polygon);
+                    polygons.push(polygon);
+                }
+            }, true)
+            
+
+            
+
+
+        }
+    </script>
+</body>
+
+</html>
